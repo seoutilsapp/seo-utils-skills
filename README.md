@@ -1,19 +1,22 @@
-# SEO Utils Skills
+# SEO Utils MCP Guide Skill
 
-Custom skills for [SEO Utils](https://seoutils.app) that help AI assistants use the MCP server more effectively.
+Helps AI assistants use the [SEO Utils](https://seoutils.app) MCP server correctly — choosing the right tool (local database vs API) for SEO data queries.
 
-## Available Skills
+## What does it do?
 
-| Skill | Description |
-|-------|-------------|
-| **seo-utils-mcp-guide** | Helps Claude choose the right MCP tool (local database vs API) for SEO data queries |
+Without this skill, AI assistants sometimes call the wrong tool — for example, using `get_organic_keywords` (API) when you ask about your rank tracker reports (local data).
+
+With the skill installed, the AI knows:
+- "Show me my rank tracker report" → queries `organic_rank_tracker_*` tables locally
+- "What keywords does competitor.com rank for?" → calls `get_organic_keywords` API
+- "Find keyword cannibalization" → queries `search_console_query_pages` locally
 
 ## Installation
 
-### Claude Desktop / Cowork
+### Claude Desktop / Cowork / ChatGPT
 
 1. [Download the latest ZIP](https://github.com/seoutilsapp/seo-utils-skills/archive/refs/heads/main.zip)
-2. In Claude Desktop, go to **Customize → Skills**
+2. Go to **Customize → Skills**
 3. Click **"+"** → **"Upload a skill"**
 4. Upload the downloaded ZIP file
 5. Toggle the skill on
@@ -21,26 +24,30 @@ Custom skills for [SEO Utils](https://seoutils.app) that help AI assistants use 
 ### Claude Code
 
 ```bash
-# Clone to your personal skills directory
-git clone https://github.com/seoutilsapp/seo-utils-skills.git ~/.claude/skills/seo-utils-skills
-```
-
-Or copy just the skill you need:
-
-```bash
 mkdir -p ~/.claude/skills/seo-utils-mcp-guide
-curl -sL https://raw.githubusercontent.com/seoutilsapp/seo-utils-skills/main/seo-utils-mcp-guide/Skill.md \
+curl -sL https://raw.githubusercontent.com/seoutilsapp/seo-utils-skills/main/Skill.md \
   -o ~/.claude/skills/seo-utils-mcp-guide/SKILL.md
 ```
 
-## What does the MCP Guide skill do?
+### Google Antigravity
 
-It teaches Claude when to use **local database queries** vs **DataForSEO API tools**. Without it, Claude sometimes calls the wrong tool — for example, using `get_organic_keywords` (API) when you ask about your rank tracker reports (local data).
+```bash
+mkdir -p ~/.gemini/antigravity/skills/seo-utils-mcp-guide
+curl -sL https://raw.githubusercontent.com/seoutilsapp/seo-utils-skills/main/Skill.md \
+  -o ~/.gemini/antigravity/skills/seo-utils-mcp-guide/SKILL.md
+```
 
-With the skill installed, Claude knows:
-- "Show me my rank tracker report" → queries `organic_rank_tracker_*` tables locally
-- "What keywords does competitor.com rank for?" → calls `get_organic_keywords` API
-- "Find keyword cannibalization" → queries `search_console_query_pages` locally
+### OpenClaw
+
+```bash
+mkdir -p ~/.openclaw/skills/seo-utils-mcp-guide
+curl -sL https://raw.githubusercontent.com/seoutilsapp/seo-utils-skills/main/Skill.md \
+  -o ~/.openclaw/skills/seo-utils-mcp-guide/SKILL.md
+```
+
+### Perplexity
+
+Download [Skill.md](https://raw.githubusercontent.com/seoutilsapp/seo-utils-skills/main/Skill.md) and upload in the **My Skills** tab.
 
 ## Requirements
 
