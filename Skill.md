@@ -40,6 +40,7 @@ The user has TWO types of SEO data:
 | User says | WRONG tool | CORRECT approach |
 |-----------|-----------|-----------------|
 | "rank tracker report" or "my rankings" | `get_organic_keywords` | `query_database` on `organic_rank_tracker_*` tables |
+| "add keywords to my rank tracker" or "start tracking X for example.com" | `add_keywords_to_list` (saved-keywords tool) or `query_database` (SQL is read-only, can't INSERT) | `add_organic_rank_tracker_keywords` — then ASK the user whether to `run_rank_tracker` as a follow-up (don't auto-rerun). Saved keyword lists are a separate feature |
 | "keyword cannibalization" | `get_organic_keywords` | `query_database` on `search_console_query_pages` |
 | "trending queries" or "GSC data" | `get_organic_keywords` | `query_gsc` on `search_console_queries` |
 | "my backlink history" | `fetch_backlinks` | Could be either — ask if they mean tracked data or fresh API data |
