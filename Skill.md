@@ -52,6 +52,7 @@ The user has TWO types of SEO data:
 | "what questions are AI engines asking about my site?" | N/A | `query_database` on `log_file_analysis_ai_requests` grouping by `extracted_query`. Low counts are NORMAL if traffic is mostly ChatGPT-User / Claude-User — those bots strip prompt data |
 | "is GPTBot / ClaudeBot / Google-Extended violating my robots.txt?" | `query_database` | `get_robots_compliance` — SQL cannot evaluate robots.txt rules, the matcher is Go-side |
 | "how is AI traffic trending?" | N/A | `query_database` on `log_file_analysis_page_activities` summing `ai_answer_hits + ai_assistant_hits` by date (upgraded reports only) |
+| "create an SEO test" or "update my SEO test" | INSERT/UPDATE via `query_database` | `create_seo_test` / `update_seo_test` — SQL is read-only, AND creation requires a transactional baseline fetch from `search_console_pages` that SQL can't perform. Every control/variant page must have GSC data in the last 28 days |
 
 ## Rule 3: When to Use API Tools
 
