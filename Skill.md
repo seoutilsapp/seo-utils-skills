@@ -24,6 +24,16 @@ The user has TWO types of SEO data:
 - Indexing status → `site_urls`, `index_now_urls` tables
 - Log Analysis → `log_analysis_reports`, `log_file_analysis_*` tables, per-report `log_sources` (auto-import config), per-hit `log_file_analysis_ai_requests` (AI answer/assistant bots, 90d retention), and the GLOBAL `bot_categories` lookup (bot → bucket: ai_answer / ai_assistant / ai_training / search / social / seo_tool / monitoring / other). For upgraded reports (`log_analysis_reports.bucket_schema_version >= 1`), `log_file_analysis_page_activities` has denormalized `ai_answer_hits` / `ai_assistant_hits` / `ai_training_hits` / `search_hits` / `other_bot_hits` columns; for pre-upgrade reports those are 0 and you must parse `bot_hits` JSON + JOIN `bot_categories`.
 - SEO Tests → `tests`, `test_*` tables
+- GA4 organic traffic + conversions → `ga4_landing_page_metrics` (daily, organic-search-only, per landing page; includes `key_events`, `revenue`, `engaged_sessions`, `bounce_rate`), `ga4_property_mappings`, `ga4_sync_statuses`
+- LLM Rank Tracker → `llm_rank_tracker_reports`, `llm_rank_tracker_responses`, `llm_rank_tracker_positions` (brand/competitor mentions in ChatGPT / Claude / Gemini / Google AI Overview / Google AI Mode), `llm_rank_tracker_citations`, `llm_rank_tracker_competitors`
+- NAP Finder → `nap_finder_reports`, `nap_finder_items`, `nap_finder_search_terms`
+- SERP Clustering → `serp_clustering_reports`, `serp_clustering_keywords`, `serp_items` (group keywords by SERP overlap)
+- Content / Topic clusters → `search_console_content_clusters` (page clusters via path filters or manual selection) and `topic_clusters` (GSC query clusters); metrics computed dynamically from `search_console_pages` / `search_console_queries`
+- Keyword insights (pre-computed) → `keyword_insights` (`trending_up`, `trending_down`, `pogo_sticking`, `flickering`). Note: `key_events` insight is NOT stored — `get_keyword_insight_summary` computes it on-demand from GA4
+- Google Business Reviews → `google_business_reviews`, `google_business_review_snapshots`
+- People Also Ask scraping → `google_paa_reports`, `google_paa_keywords` (parent → sub-question tree), `google_paa_seed_keywords`
+- NLP Analysis → `nlp_analysis_*` tables (entities + topics via TextRazor / other providers)
+- Workspaces → `workspaces` (read `seo-utils://status` for the active workspace; use `set_workspace` to switch, `create_workspace`/`update_workspace` for CRUD)
 
 **DataForSEO API** (on-demand, third-party estimates) — use action tools:
 - `get_keyword_suggestions` / `get_bing_related_keywords` — keyword research
@@ -52,6 +62,15 @@ The user has TWO types of SEO data:
 | "what questions are AI engines asking about my site?" | N/A | `query_database` on `log_file_analysis_ai_requests` grouping by `extracted_query`. Low counts are NORMAL if traffic is mostly ChatGPT-User / Claude-User — those bots strip prompt data |
 | "is GPTBot / ClaudeBot / Google-Extended violating my robots.txt?" | `query_database` | `get_robots_compliance` — SQL cannot evaluate robots.txt rules, the matcher is Go-side |
 | "how is AI traffic trending?" | N/A | `query_database` on `log_file_analysis_page_activities` summing `ai_answer_hits + ai_assistant_hits` by date (upgraded reports only) |
+| "which pages convert?" or "pages driving revenue/sign-ups" | `get_organic_keywords` / `get_top_pages` | `query_database` on `ga4_landing_page_metrics WHERE key_events > 0` (filter by `domain`). For revenue: `SUM(revenue)`. Note conversions are page-level, NOT keyword-level — never attribute a key event to a single keyword |
+| "trending up / trending down keywords" | `get_organic_keywords` | `query_database` on `keyword_insights WHERE insight_type IN ('trending_up','trending_down')` filtered by `organic_rank_tracker_report_id`. For Key Events insight, use `get_keyword_insight_summary` (not stored in table) |
+| "pogo-sticking" or "flickering" keywords | N/A | `query_database` on `keyword_insights WHERE insight_type IN ('pogo_sticking','flickering')`. These require **daily** tracking (`report.schedule = 1`) — return 0 rows for weekly/monthly reports |
+| "how do I rank in ChatGPT / Claude / Gemini / AI Overview?" | `get_organic_keywords` | `query_database` on `llm_rank_tracker_positions WHERE position > 0 AND is_best_position = 1` filtered by `report_id`. `position = 0` means NOT mentioned, NOT NULL |
+| "find my NAP citations" | N/A | `query_database` on `nap_finder_items` filtered by `nap_finder_report_id` |
+| "cluster my queries" or "topic clusters" | N/A | `query_database` on `topic_clusters` + `topic_cluster_query_items` (JOIN `search_console_queries` for metrics). For page clusters, use `search_console_content_clusters` |
+| "URL inspection" or "indexing status" | N/A | `query_database` on `site_urls` (filter by `domain`). For status changes over time, `indexing_movements`. For batch operations, `trigger_indexing_action` |
+| "internal links" or "orphan pages" | N/A | `trigger_indexing_action` with `trigger_link_crawl` first, then `query_database` on `internal_links` (filter by `domain`). JOIN `site_urls` via `normalized_path` |
+| "switch to workspace X" or "what workspace am I in?" | N/A | Read `seo-utils://status` for active workspace. Use `set_workspace` to switch. The status resource also returns `gsc_utc_offset_hours` — use it when extracting calendar dates from UTC-stored GSC datetimes |
 
 ## Rule 3: When to Use API Tools
 
@@ -67,6 +86,24 @@ Use DataForSEO API action tools ONLY when:
 - `send_email` — send any email with SMTP. Check `smtp_credentials` table first
 - Automations — use `create_automation` for recurring workflows (triggered by events)
 - For one-time exports, generate the content and use `send_email` to deliver it
+
+## Rule 4.5: GA4 + Rankings Correlation
+
+When the user asks "which keywords drive conversions" or "what's my best-converting topic":
+
+1. Conversions in GA4 are **page-level**, not keyword-level. You can only correlate, never attribute. Always say this out loud when answering.
+2. Find converting pages: `SELECT landing_page_path, SUM(key_events) AS conv, SUM(revenue) AS rev FROM ga4_landing_page_metrics WHERE domain = ? AND date >= ? GROUP BY landing_page_path ORDER BY conv DESC`.
+3. Find keywords ranking on those pages: JOIN `organic_rank_tracker_positions` → `organic_rank_tracker_keywords` → `organic_rank_tracker_snapshots`, matching the page URL to `landing_page_path`. Use `MIN(position)` for best rank.
+4. For Key Events at the keyword level inside a rank tracker report, use `get_keyword_insight_summary` (computed on-demand) — this is the only place the GA4 ↔ rank tracker join is materialized.
+5. GA4 metrics are organic-search only (filtered by `sessionDefaultChannelGroup = 'Organic Search'`) — never present them as total site traffic.
+
+## Rule 4.6: Workspace Awareness
+
+Most data tables are workspace-scoped via `workspace_id`. Before answering questions like "show me all my rank tracker reports" or "what's my GSC data":
+
+1. Read `seo-utils://status` to get the active workspace (`active_workspace.id`).
+2. If a user references "another project" or "the other client", check `list_workspaces` and confirm before switching with `set_workspace`.
+3. Switching workspaces affects every subsequent query — call it out in your response so the user isn't surprised.
 
 ## Rule 5: Visualizing GMB Rank Tracker Grids
 
