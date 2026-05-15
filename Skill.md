@@ -76,33 +76,54 @@ When the user asks to "draw", "render", "show on a map", or "visualize" GMB rank
 - Grid layout only (no rankings): `SELECT lat, lng FROM google_business_rank_tracker_markers WHERE google_business_rank_tracker_report_id = ? AND disabled = 0`
 - Grid with rankings: join `google_business_rank_tracker_markers` with `google_business_rank_tracker_snapshot_items` on `(lat, lng)`, filtered by `place_id = report.place_id` and the chosen `snapshot_id`. For "best rank across all keywords" per grid point use `MIN(rank)` grouped by `(lat, lng)`. See the `google_business_rank_tracker_snapshot_items` schema annotation for the canonical avg_rank / SoLV math — do not invent your own.
 
-**Rendering recipe** — match the desktop heatmap (`frontend/src/views/GoogleBusinessRankTracker/GoogleBusinessRankTrackerReportHeatmap.vue`):
+**Pick the right marker size — this is the most common mistake:**
+
+| Context | Marker style | Mirrors |
+|---|---|---|
+| **Full-page / standalone artifact** (default when the user asks "draw a map", "show me the grid", "visualize my rankings") | 32 px circle with the **rank number inside** + 2 px white border | Google Maps view in `GoogleBusinessRankTrackerMap.vue` (`createMarkerContentWithRank`, `frontend/src/helpers/googleMaps.js:81-250`) |
+| **Compact / dashboard thumbnail** (only when the user says "thumbnail", "card", "widget", "compact preview", or marker count is ≥225 and labels would overlap) | 10 px solid colored dot, no text | Heatmap card in `GoogleBusinessRankTrackerReportHeatmap.vue` |
+
+**Rendering recipe — full-page (default):**
 
 1. Load Leaflet from CDN: `https://unpkg.com/leaflet@1.9.4/dist/leaflet.css` + `https://unpkg.com/leaflet@1.9.4/dist/leaflet.js`.
-2. Init the map read-only (all interaction disabled for a clean dashboard look):
+2. Init the map **interactive** with an OpenStreetMap tile layer so the user can see streets/neighborhoods:
    ```js
-   L.map(el, {
-     dragging:false, zoomControl:false, scrollWheelZoom:false, doubleClickZoom:false,
-     touchZoom:false, boxZoom:false, keyboard:false, attributionControl:false
-   })
+   const map = L.map(el)
+   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+     attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
+   }).addTo(map)
    ```
-   Skip the tile layer entirely for a transparent dot-only heatmap. Add `L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png')` only if the user explicitly asks for streets — and re-enable `dragging`/`zoomControl` if they want it interactive.
-3. One marker per grid point with `L.divIcon` containing a 10×10 px colored circle:
+3. One marker per grid point with a labeled `L.divIcon` (text = rank, or `21+` when no rank):
    ```js
    L.marker([lat, lng], {
      icon: L.divIcon({
-       className: 'gmb-card-marker',
-       html: `<div style="background:${color};width:10px;height:10px;border-radius:9999px;border:1px solid rgba(0,0,0,0.15);"></div>`,
-       iconSize: [10, 10],
-       iconAnchor: [5, 5],
+       className: 'gmb-rank-marker',
+       html: `<div style="display:flex;align-items:center;justify-content:center;
+                          width:32px;height:32px;border-radius:9999px;
+                          background:${color};color:#fff;font-weight:600;font-size:13px;
+                          border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.35);">
+                ${rank ?? '21+'}
+              </div>`,
+       iconSize: [32, 32],
+       iconAnchor: [16, 16],
      }),
-     interactive: false,
-   }).addTo(map)
+   }).addTo(map).bindTooltip(`Rank: ${rank ?? '21+'}`, {direction:'top'})
    ```
-4. Color by rank — exact thresholds, do not improvise:
-   - rank ≤ 3 → `#22c55e` (green)
-   - rank 4–10 → `#eab308` (yellow)
-   - rank > 10 OR no rank → `#ef4444` (red)
-5. Auto-fit bounds: `map.fitBounds(bounds, {padding:[12,12], maxZoom:19})` — use padding `[6,6]` when there are ≥121 markers.
+4. Auto-fit bounds: `map.fitBounds(bounds, {padding:[24,24], maxZoom:18})`.
 
-If the user wants a richer view (hover popups with rank/keyword, side-by-side per-keyword maps, streets), extend this recipe — but keep the 10-px dot size, the color thresholds, and the Leaflet 1.9.4 CDN URL the same so the artifact stays visually consistent with the desktop heatmap.
+**Rendering recipe — compact thumbnail (only when explicitly asked):**
+
+- Same CDN load, but init map read-only and **omit the tile layer** for a transparent dot-only heatmap:
+  ```js
+  L.map(el, {dragging:false, zoomControl:false, scrollWheelZoom:false, doubleClickZoom:false,
+             touchZoom:false, boxZoom:false, keyboard:false, attributionControl:false})
+  ```
+- Markers: `width:10px;height:10px;border-radius:9999px;border:1px solid rgba(0,0,0,0.15);` no text, `interactive:false`.
+- Fit bounds with `padding:[12,12]` (use `[6,6]` when ≥121 markers).
+
+**Color by rank — exact thresholds, do not improvise (both modes):**
+- rank ≤ 3 → `#22c55e` (green)
+- rank 4–10 → `#eab308` (yellow)
+- rank > 10 (i.e. 11–20) OR no rank → `#ef4444` (red)
+
+If the user wants extras (hover popups with rank/keyword/title, side-by-side per-keyword maps, dark mode), build on top of these recipes — but keep the marker dimensions, color thresholds, and Leaflet 1.9.4 CDN URL unchanged so the artifact stays visually consistent with the desktop app.
