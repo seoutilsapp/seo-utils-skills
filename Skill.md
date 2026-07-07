@@ -14,6 +14,7 @@ The user has TWO types of SEO data:
 **Local database** (synced/tracked over time) — use `query_database` or `query_gsc`:
 - Organic Rank Tracker reports → `organic_rank_tracker_*` tables
 - Google Business Rank Tracker → `google_business_rank_tracker_*` tables
+- Review Fetcher (Google Business reviews) → `google_business_review_fetches`, `google_business_review_snapshots`, and the GLOBAL deduplicated `google_business_reviews` table — review rows are SHARED across businesses, so NEVER filter it alone; always JOIN through `google_business_review_snapshot_reviews` against the business's latest completed snapshot and exclude `visibility_status = 'missing'`
 - Google Search Console data → `search_console_*` tables (use `query_gsc`)
 - LLM Rank Tracker → `llm_rank_tracker_*` tables
 - Content Struct outlines → `content_struct*` tables
@@ -48,7 +49,8 @@ The user has TWO types of SEO data:
 | "optimization opportunities" | `get_organic_keywords` | `query_database` on `search_console_query_pages` + `search_console_query_page_mentions` |
 | "weak pages" or "low CTR pages" | `get_organic_keywords` | `query_gsc` on `search_console_pages` or `search_console_queries` |
 | "my automations" | N/A | `query_database` on `automations` table |
-| "content brief" or "content outline" | N/A | `query_database` on `content_struct_layout_headings` + `content_struct_layout_metadata` |
+| "show me the content brief/outline" (existing report) | N/A | `query_database` on `content_struct_layout_headings` + `content_struct_layout_metadata` |
+| "analyze competitors for keyword X" or "create/generate a content brief or outline" | `query_database` (SQL can only read outlines, not produce them) | `create_content_struct` (scrapes top SERP + competitor headings, async), then `generate_content_outline` (AI outline; needs provider + model — ask the user which) |
 | "which pages are AI bots fetching?" | `get_organic_keywords` | Check `log_analysis_reports.bucket_schema_version` first. If ≥1, `query_database` on `log_file_analysis_page_activities WHERE ai_answer_hits + ai_assistant_hits > 0`. If =0, parse `bot_hits` JSON + JOIN `bot_categories` |
 | "what questions are AI engines asking about my site?" | N/A | `query_database` on `log_file_analysis_ai_requests` grouping by `extracted_query`. Low counts are NORMAL if traffic is mostly ChatGPT-User / Claude-User — those bots strip prompt data |
 | "is GPTBot / ClaudeBot / Google-Extended violating my robots.txt?" | `query_database` | `get_robots_compliance` — SQL cannot evaluate robots.txt rules, the matcher is Go-side |
