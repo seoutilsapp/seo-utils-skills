@@ -18,6 +18,7 @@ The user has TWO types of SEO data:
 - Google Search Console data → `search_console_*` tables (use `query_gsc`)
 - LLM Rank Tracker → `llm_rank_tracker_*` tables
 - Content Struct outlines → `content_struct*` tables
+- SERP Clustering → `serp_clustering_reports` + `serp_clustering_keywords` (parent_id = own id AND intersection_count NOT NULL → cluster parent; parent_id = 0 → unclustered orphan; else child of parent_id) + `serp_items` for the SERP URLs behind each keyword (filter to MAX(updated_at) per unique_id)
 - NLP Analysis → `nlp_analysis_*` tables
 - NAP Finder → `nap_finder_*` tables
 - Saved Keywords → `saved_keywords_*` tables
@@ -51,6 +52,7 @@ The user has TWO types of SEO data:
 | "my automations" | N/A | `query_database` on `automations` table |
 | "show me the content brief/outline" (existing report) | N/A | `query_database` on `content_struct_layout_headings` + `content_struct_layout_metadata` |
 | "analyze competitors for keyword X" or "create/generate a content brief or outline" | `query_database` (SQL can only read outlines, not produce them) | `create_content_struct` (scrapes top SERP + competitor headings, async), then `generate_content_outline` (AI outline; needs provider + model — ask the user which) |
+| "cluster these keywords" or "group my keywords by topic/SERP similarity" | `query_database` (read-only) or saved-keywords tools (wrong feature) | `create_serp_clustering_report` (async — poll `serp_clustering_reports.clustering_status`). To add keywords to an EXISTING report there is no add-keywords tool: `run_serp_clustering` with `keywords` + `distribute_keywords=true` (keeps existing clusters) |
 | "which pages are AI bots fetching?" | `get_organic_keywords` | Check `log_analysis_reports.bucket_schema_version` first. If ≥1, `query_database` on `log_file_analysis_page_activities WHERE ai_answer_hits + ai_assistant_hits > 0`. If =0, parse `bot_hits` JSON + JOIN `bot_categories` |
 | "what questions are AI engines asking about my site?" | N/A | `query_database` on `log_file_analysis_ai_requests` grouping by `extracted_query`. Low counts are NORMAL if traffic is mostly ChatGPT-User / Claude-User — those bots strip prompt data |
 | "is GPTBot / ClaudeBot / Google-Extended violating my robots.txt?" | `query_database` | `get_robots_compliance` — SQL cannot evaluate robots.txt rules, the matcher is Go-side |
