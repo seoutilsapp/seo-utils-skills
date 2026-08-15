@@ -12,7 +12,7 @@ When the user asks about SEO data, use this guide to pick the correct tool.
 The user has TWO types of SEO data:
 
 **Local database** (synced/tracked over time) — use `query_database` or `query_gsc`:
-- Organic Rank Tracker reports → `organic_rank_tracker_*` tables
+- Organic Rank Tracker reports → `organic_rank_tracker_*` tables. Ranked-page capture metadata is in `organic_rank_tracker_page_html_captures`, but the HTML body is stored on disk; discover two completed capture IDs with `query_database`, then use `compare_ranked_page_html` to read and diff them
 - Google Business Rank Tracker → `google_business_rank_tracker_*` tables
 - Review Fetcher (Google Business reviews) → `google_business_review_fetches`, `google_business_review_snapshots`, and the GLOBAL deduplicated `google_business_reviews` table — review rows are SHARED across businesses, so NEVER filter it alone; always JOIN through `google_business_review_snapshot_reviews` against the business's latest completed snapshot and exclude `visibility_status = 'missing'`
 - Google Search Console data → `search_console_*` tables (use `query_gsc`)
@@ -42,6 +42,7 @@ The user has TWO types of SEO data:
 | User says | WRONG tool | CORRECT approach |
 |-----------|-----------|-----------------|
 | "rank tracker report" or "my rankings" | `get_organic_keywords` | `query_database` on `organic_rank_tracker_*` tables |
+| "what changed on this ranked page?", "why did this page become lost/new?", or "compare the captured HTML" | `query_database` alone (it can only see capture metadata/file paths, not the HTML body) or `fetch_serp_data` (SERP HTML is not ranked-page HTML) | Use `query_database` to select two completed `organic_rank_tracker_page_html_captures`, then `compare_ranked_page_html`. Start with `content_mode=main_content`; use `full_html` for title/canonical/robots/structured-data/template checks. Prefer equal `page_key` for before/after; different page keys are only an explicit lost-page vs replacement-page comparison. Treat changes as correlated evidence, not proof of ranking causation |
 | "add keywords to my rank tracker" or "start tracking X for example.com" | `add_keywords_to_list` (saved-keywords tool) or `query_database` (SQL is read-only, can't INSERT) | `add_organic_rank_tracker_keywords` — then ASK the user whether to `run_rank_tracker` as a follow-up (don't auto-rerun). Saved keyword lists are a separate feature |
 | "remove keywords from my rank tracker" or "delete X from my rank tracker" or "clean up keywords in <report>" | `remove_keywords_from_list` (saved-keywords tool, wrong feature) or `query_database` (SQL is read-only, can't DELETE) | `remove_organic_rank_tracker_keywords` — match is by keyword text. DESTRUCTIVE: also deletes historical positions, PAA appearances, and insights for those keywords. Confirm with the user before running on a large set |
 | "keyword cannibalization" | `get_organic_keywords` | `query_database` on `search_console_query_pages` |
