@@ -34,7 +34,7 @@ The user has TWO types of SEO data:
 - `get_traffic_competitors` / `get_top_pages` — competitor/page analysis
 - `fetch_backlinks` / `get_backlink_summary` / etc. — backlink data
 - `bulk_traffic_analysis` / `bulk_backlink_analysis` — multi-domain comparison
-- `check_keyword_metrics` — search volume, KD, CPC
+- `check_keyword_metrics` — search volume, KD, CPC. Optional `source` picks the data source (empty = the default set in SEO Utils); results land in `keyword_metrics`, tagged in its `source` column
 - `fetch_serp_data` — live SERP results
 
 ## Rule 2: Common Mistakes to Avoid
@@ -45,6 +45,7 @@ The user has TWO types of SEO data:
 | "what changed on this ranked page?", "why did this page become lost/new?", or "compare the captured HTML" | `query_database` alone (it can only see capture metadata/file paths, not the HTML body) or `fetch_serp_data` (SERP HTML is not ranked-page HTML) | Use `query_database` to select two completed `organic_rank_tracker_page_html_captures`, then `compare_ranked_page_html`. Start with `content_mode=main_content`; use `full_html` for title/canonical/robots/structured-data/template checks. Prefer equal `page_key` for before/after; different page keys are only an explicit lost-page vs replacement-page comparison. Treat changes as correlated evidence, not proof of ranking causation |
 | "add keywords to my rank tracker" or "start tracking X for example.com" | `add_keywords_to_list` (saved-keywords tool) or `query_database` (SQL is read-only, can't INSERT) | `add_organic_rank_tracker_keywords` — then ASK the user whether to `run_rank_tracker` as a follow-up (don't auto-rerun). Saved keyword lists are a separate feature |
 | "remove keywords from my rank tracker" or "delete X from my rank tracker" or "clean up keywords in <report>" | `remove_keywords_from_list` (saved-keywords tool, wrong feature) or `query_database` (SQL is read-only, can't DELETE) | `remove_organic_rank_tracker_keywords` — match is by keyword text. DESTRUCTIVE: also deletes historical positions, PAA appearances, and insights for those keywords. Confirm with the user before running on a large set |
+| "search volume is 0 / missing but Keyword Planner shows numbers" or "get Google Ads volume for these keywords" | `check_keyword_metrics` with no `source` (repeats the default, usually `labs`, whose database omits many keywords) | `check_keyword_metrics` with `source='google_ads'` (or `dfs_search_volume`) — both need the user's own DataForSEO credentials and cost more, so confirm first. A re-check replaces the keyword's figures AND monthly history with the new source's. When reading `keyword_metrics`: `search_volume IS NULL` = checked but the source had no figure ("no data"); `0` = the source reported zero searches — never report NULL as 0 |
 | "keyword cannibalization" | `get_organic_keywords` | `query_database` on `search_console_query_pages` |
 | "trending queries" or "GSC data" | `get_organic_keywords` | `query_gsc` on `search_console_queries` |
 | "my backlink history" | `fetch_backlinks` | Could be either — ask if they mean tracked data or fresh API data |
