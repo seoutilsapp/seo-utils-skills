@@ -1,0 +1,6 @@
+# GitHub's "Download ZIP" (linked from older SEO Utils versions and the help
+# guide for skill uploads) must hold one skill file only: Skill.md at the root.
+# Plugin installs clone the repository, so they still get these.
+.claude-plugin export-ignore
+skills export-ignore
+.github export-ignore
