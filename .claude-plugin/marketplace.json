@@ -1,0 +1,16 @@
+{
+  "name": "seo-utils",
+  "description": "Skills for using SEO Utils with Claude.",
+  "owner": {
+    "name": "SEO Utils",
+    "url": "https://seoutils.app"
+  },
+  "plugins": [
+    {
+      "name": "seo-utils",
+      "source": "./",
+      "description": "Teaches Claude to use the SEO Utils MCP server: which tool, which table and which action for every SEO task.",
+      "category": "productivity"
+    }
+  ]
+}

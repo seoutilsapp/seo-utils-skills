@@ -1,19 +1,39 @@
 # SEO Utils MCP Guide Skill
 
-Helps AI assistants use the [SEO Utils](https://seoutils.app) MCP server correctly — choosing the right tool (local database vs API) for SEO data queries.
+Helps AI assistants use the [SEO Utils](https://seoutils.app) MCP server correctly — choosing the right tool (local database vs paid lookup vs write) for SEO data queries.
 
 ## What does it do?
 
-Without this skill, AI assistants sometimes call the wrong tool — for example, using `get_organic_keywords` (API) when you ask about your rank tracker reports (local data).
+Without this skill, AI assistants sometimes call the wrong tool — for example, looking up a domain's keywords through DataForSEO (which spends credits) when you ask about your own rank tracker reports (local data).
 
 With the skill installed, the AI knows:
 - "Show me my rank tracker report" → queries `organic_rank_tracker_*` tables locally
-- "What keywords does competitor.com rank for?" → calls `get_organic_keywords` API
+- "What keywords does competitor.com rank for?" → runs the `get_organic_keywords` lookup action
 - "Find keyword cannibalization" → queries `search_console_query_pages` locally
+- "Delete my GMB test reports" → finds the reports, confirms them with you, then runs `delete_gmb_rank_tracker_reports`
 
 ## Installation
 
-### Claude Desktop / Cowork / ChatGPT
+### Claude (Claude Code, Claude Desktop, claude.ai, Cowork): install the plugin
+
+The plugin keeps the skill up to date automatically.
+
+**Claude Code:**
+
+```
+/plugin marketplace add seoutilsapp/seo-utils-skills
+/plugin install seo-utils@seo-utils
+```
+
+**Claude Desktop or claude.ai:** open **Customize → Plugins**, add the marketplace `seoutilsapp/seo-utils-skills`, then install **SEO Utils**. A plugin you install there is also available in Claude Code.
+
+The plugin contains the skill only. Connect the MCP server itself from the SEO Utils app (**Settings → MCP Server**).
+
+### Upload the skill file instead
+
+Use this for assistants without plugins, or if you prefer to manage the file yourself. It doesn't update automatically.
+
+**Claude Desktop / Cowork / ChatGPT:**
 
 1. [Download the latest ZIP](https://github.com/seoutilsapp/seo-utils-skills/archive/refs/heads/main.zip)
 2. Go to **Customize → Skills**
@@ -21,7 +41,7 @@ With the skill installed, the AI knows:
 4. Upload the downloaded ZIP file
 5. Toggle the skill on
 
-### Claude Code
+**Claude Code:**
 
 ```bash
 mkdir -p ~/.claude/skills/seo-utils-mcp-guide
@@ -29,7 +49,7 @@ curl -sL https://raw.githubusercontent.com/seoutilsapp/seo-utils-skills/main/Ski
   -o ~/.claude/skills/seo-utils-mcp-guide/SKILL.md
 ```
 
-### Google Antigravity
+**Google Antigravity:**
 
 ```bash
 mkdir -p ~/.gemini/antigravity/skills/seo-utils-mcp-guide
@@ -37,7 +57,7 @@ curl -sL https://raw.githubusercontent.com/seoutilsapp/seo-utils-skills/main/Ski
   -o ~/.gemini/antigravity/skills/seo-utils-mcp-guide/SKILL.md
 ```
 
-### OpenClaw
+**OpenClaw:**
 
 ```bash
 mkdir -p ~/.openclaw/skills/seo-utils-mcp-guide
@@ -45,14 +65,17 @@ curl -sL https://raw.githubusercontent.com/seoutilsapp/seo-utils-skills/main/Ski
   -o ~/.openclaw/skills/seo-utils-mcp-guide/SKILL.md
 ```
 
-### Perplexity
-
-Download [Skill.md](https://raw.githubusercontent.com/seoutilsapp/seo-utils-skills/main/Skill.md) and upload in the **My Skills** tab.
+**Perplexity:** download [Skill.md](https://raw.githubusercontent.com/seoutilsapp/seo-utils-skills/main/Skill.md) and upload it in the **My Skills** tab.
 
 ## Requirements
 
 - [SEO Utils](https://seoutils.app) desktop app with MCP server enabled
 - [MCP Access](https://app.seoutils.app/mcp/purchase) (one-time purchase)
+
+## Updating the skill (maintainers)
+
+- Edit `skills/seo-utils-mcp-guide/SKILL.md`, then copy it to `Skill.md`. The root `Skill.md` serves the download links above and older install instructions; a check fails when the two differ.
+- Raise `version` in `.claude-plugin/plugin.json` with every change, so installed plugins update.
 
 ## Links
 
