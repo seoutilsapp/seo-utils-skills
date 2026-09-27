@@ -16,14 +16,14 @@ With the skill installed, the AI knows:
 
 ### Claude (Claude Code, Claude Desktop, claude.ai, Cowork): install the plugin
 
-The plugin keeps the skill up to date automatically.
-
 **Claude Code:**
 
 ```
 /plugin marketplace add seoutilsapp/seo-utils-skills
 /plugin install seo-utils@seo-utils
 ```
+
+To get skill updates automatically, open `/plugin` → **Marketplaces** → **seo-utils** → **Enable auto-update** (Claude Code leaves it off for marketplaces you add). Or update by hand with `claude plugin update seo-utils@seo-utils`.
 
 **Claude Desktop or claude.ai:** open **Customize → Plugins**, add the marketplace `seoutilsapp/seo-utils-skills`, then install **SEO Utils**. A plugin you install there is also available in Claude Code.
 
@@ -75,7 +75,7 @@ curl -sL https://raw.githubusercontent.com/seoutilsapp/seo-utils-skills/main/Ski
 ## Updating the skill (maintainers)
 
 - Edit `skills/seo-utils-mcp-guide/SKILL.md`, then copy it to `Skill.md`. The root `Skill.md` serves the download links above and older install instructions; a check fails when the two differ.
-- Raise `version` in `.claude-plugin/plugin.json` with every change, so installed plugins update.
+- Don't add a `version` to `.claude-plugin/plugin.json`. Without one, every commit on `main` is a new version, so installed plugins update. A pinned version keeps everyone on the old copy until someone changes it.
 
 ## Links
 
