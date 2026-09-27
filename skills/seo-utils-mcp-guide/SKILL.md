@@ -9,7 +9,7 @@ When the user asks about SEO data, use this guide to pick the correct tool.
 
 ## How the SEO Utils tools work
 
-**Data tools** are listed as tools: `list_tables`, `describe_table`, `query_database` (read-only SQL on the user's local database), `query_gsc` (Search Console tables), `list_workspaces` and `set_workspace`. Reports belong to a workspace; if a report the user names is missing, check `list_workspaces`.
+**Data tools** are listed as tools: `list_tables`, `describe_table`, `query_database` (read-only SQL on the user's local database), `query_gsc` (Search Console tables), `list_workspaces` and `set_workspace`. SQL sees every workspace: filter tables that have a `workspace_id` column by the active workspace, which `list_workspaces` shows. Actions run in the active workspace only, so if a report the user names is missing, check `list_workspaces`.
 
 **Everything else is an action**, and actions are NOT tools. You can't call `get_organic_keywords` directly. Run an action with the run tool of its class, passing `{"action": "<name>", "arguments": {...}}`:
 
@@ -17,13 +17,14 @@ When the user asks about SEO data, use this guide to pick the correct tool.
 |---|---|
 | `read_action` | read local data only. Free |
 | `lookup_action` | call an external service (DataForSEO, Google, …). May spend the user's provider credits |
-| `write_action` | create, change, delete or run reports and settings, or send email |
+| `write_action` | create, change, delete or run reports and settings, or send something (email, indexing submissions) |
 
-- In this guide each action carries its run tool: `get_organic_keywords` (lookup) means `lookup_action` with `"action": "get_organic_keywords"`.
+- In this guide each action is followed by its class: `get_organic_keywords` (lookup) means `lookup_action` with `"action": "get_organic_keywords"`. Every action in the **External data** list below is a lookup.
 - Call `describe_action` (1–10 names) before the first use of an action, to get its parameters. Arguments it doesn't declare, or the wrong run tool, are refused and nothing runs.
 - Not sure which action fits? `search_actions` with a few words ("backlink summary", "create rank tracker").
-- Pass lists (keywords, domains, competitors, email recipients) as JSON arrays.
+- Pass each argument in the type `describe_action` shows; a value of the wrong type can be ignored without an error. Most lists (keywords, domains, competitors, email recipients) are JSON arrays, but `send_email`'s `attachment_path` is one comma-separated string and `create_automation`'s `actions` is a JSON array encoded as a string.
 - When a tool result says "call run_rank_tracker" or names another action, run it the same way, through its run tool.
+- SEO Utils 2.5.0 and older list every action as its own tool and have no run tools. If `read_action` isn't available, call the action by name with the same arguments.
 
 ## Rule 1: Local Data vs External Data
 
@@ -63,12 +64,12 @@ Column names vary by table: run `describe_table` before writing SQL against a ta
 | User says | WRONG tool | CORRECT approach |
 |-----------|-----------|-----------------|
 | "rank tracker report" or "my rankings" | `get_organic_keywords` (lookup) | `query_database` on `organic_rank_tracker_*` tables |
-| "what changed on this ranked page?", "why did this page become lost/new?", or "compare the captured HTML" | `query_database` alone (it can only see capture metadata/file paths, not the HTML body) or `fetch_serp_data` (SERP HTML is not ranked-page HTML) | Use `query_database` to select two completed `organic_rank_tracker_page_html_captures`, then `compare_ranked_page_html` (read). Start with `content_mode=main_content`; use `full_html` for title/canonical/robots/structured-data/template checks. Prefer equal `page_key` for before/after; different page keys are only an explicit lost-page vs replacement-page comparison. Treat changes as correlated evidence, not proof of ranking causation |
-| "add keywords to my rank tracker" or "start tracking X for example.com" | `add_keywords_to_list` (saved-keywords action) or `query_database` (SQL is read-only, can't INSERT) | `add_organic_rank_tracker_keywords` (write) — then ASK the user whether to run `run_rank_tracker` (write) as a follow-up (don't auto-rerun). Saved keyword lists are a separate feature |
-| "remove keywords from my rank tracker" or "delete X from my rank tracker" or "clean up keywords in <report>" | `remove_keywords_from_list` (saved-keywords action, wrong feature) or `query_database` (SQL is read-only, can't DELETE) | `remove_organic_rank_tracker_keywords` (write) — match is by keyword text. DESTRUCTIVE: also deletes historical positions, PAA appearances, and insights for those keywords. Confirm with the user before running on a large set |
-| "delete my GMB report(s)", "remove these local rank trackers / grids", or "clean up my GMB test reports" | `delete_gmb_report_group` (deletes only the GROUP — its reports stay) or `query_database` (SQL is read-only, can't DELETE) | `delete_gmb_rank_tracker_reports` (write) with `report_ids` (whole-number IDs from `google_business_rank_tracker_reports`, max 100 per call; one report = one-item list). DESTRUCTIVE and permanent: also deletes the reports' keywords, grid markers, snapshots and ranking history — confirm the report names and IDs with the user first. Deleting reports does not delete a group that contained them |
-| "search volume is 0 / missing but Keyword Planner shows numbers" or "get Google Ads volume for these keywords" | `check_keyword_metrics` with no `source` (repeats the default, usually `labs`, whose database omits many keywords) | `check_keyword_metrics` (lookup) with `source='google_ads'` (or `dfs_search_volume`) — both need the user's own DataForSEO credentials and cost more, so confirm first. A re-check replaces the keyword's figures AND monthly history with the new source's. When reading `keyword_metrics`: `search_volume IS NULL` = checked but the source had no figure ("no data"); `0` = the source reported zero searches — never report NULL as 0 |
-| "keyword ideas / suggestions from Google Ads", "Keyword Planner ideas for X", or "suggestions are empty / the database has no data for this niche keyword" | `get_keyword_suggestions` with no `source` (usually `labs`, which misses many niche keywords) followed by `check_keyword_metrics` on the whole list (a second paid call per keyword batch) | `get_keyword_suggestions` (lookup) with `source='google_ads'` — one search returns live Google Ads volume/CPC/competition for the seed AND every idea (~$0.10 per search vs ~$0.012 for `labs`; billed to the user's own DataForSEO credentials, so confirm first). The ideas carry NO keyword difficulty, search intent, backlink or SERP-results figures: `kd_from`/`kd_to`/`search_intents` filters are refused in this mode, and sorting by difficulty falls back to volume. The figures are also saved to `keyword_metrics` with `source = 'google_ads'` |
+| "what changed on this ranked page?", "why did this page become lost/new?", or "compare the captured HTML" | `query_database` alone (it can only see capture metadata/file paths, not the HTML body) or `fetch_serp_data` (lookup; SERP HTML is not ranked-page HTML) | Use `query_database` to select two completed `organic_rank_tracker_page_html_captures`, then `compare_ranked_page_html` (read). Start with `content_mode=main_content`; use `full_html` for title/canonical/robots/structured-data/template checks. Prefer equal `page_key` for before/after; different page keys are only an explicit lost-page vs replacement-page comparison. Treat changes as correlated evidence, not proof of ranking causation |
+| "add keywords to my rank tracker" or "start tracking X for example.com" | `add_keywords_to_list` (write; saved keyword lists, a separate feature) or `query_database` (SQL is read-only, can't INSERT) | `add_organic_rank_tracker_keywords` (write) — then ASK the user whether to run `run_rank_tracker` (write) as a follow-up (don't auto-rerun). Saved keyword lists are a separate feature |
+| "remove keywords from my rank tracker" or "delete X from my rank tracker" or "clean up keywords in <report>" | `remove_keywords_from_list` (write; saved keyword lists, wrong feature) or `query_database` (SQL is read-only, can't DELETE) | `remove_organic_rank_tracker_keywords` (write) — match is by keyword text. DESTRUCTIVE: also deletes historical positions, PAA appearances, and insights for those keywords. Confirm with the user before running on a large set |
+| "delete my GMB report(s)", "remove these local rank trackers / grids", or "clean up my GMB test reports" | `delete_gmb_report_group` (write; deletes only the GROUP — its reports stay) or `query_database` (SQL is read-only, can't DELETE) | `delete_gmb_rank_tracker_reports` (write) with `report_ids` (whole-number IDs from `google_business_rank_tracker_reports`, max 100 per call; one report = one-item list). DESTRUCTIVE and permanent: also deletes the reports' keywords, grid markers, snapshots and ranking history — confirm the report names and IDs with the user first. Deleting reports does not delete a group that contained them |
+| "search volume is 0 / missing but Keyword Planner shows numbers" or "get Google Ads volume for these keywords" | `check_keyword_metrics` (lookup) with no `source` (repeats the default, usually `labs`, whose database omits many keywords) | `check_keyword_metrics` (lookup) with `source='google_ads'` (or `dfs_search_volume`) — both need the user's own DataForSEO credentials and cost more, so confirm first. A re-check replaces the keyword's figures AND monthly history with the new source's. When reading `keyword_metrics`: `search_volume IS NULL` = checked but the source had no figure ("no data"); `0` = the source reported zero searches — never report NULL as 0 |
+| "keyword ideas / suggestions from Google Ads", "Keyword Planner ideas for X", or "suggestions are empty / the database has no data for this niche keyword" | `get_keyword_suggestions` (lookup) with no `source` (usually `labs`, which misses many niche keywords) followed by `check_keyword_metrics` (lookup) on the whole list (a second paid call per keyword batch) | `get_keyword_suggestions` (lookup) with `source='google_ads'` — one search returns live Google Ads volume/CPC/competition for the seed AND every idea (~$0.10 per search vs ~$0.012 for `labs`; billed to the user's own DataForSEO credentials, so confirm first). The ideas carry NO keyword difficulty, search intent, backlink or SERP-results figures: `kd_from`/`kd_to`/`search_intents` filters are refused in this mode, and sorting by difficulty falls back to volume. The figures are also saved to `keyword_metrics` with `source = 'google_ads'` |
 | "keyword cannibalization" | `get_organic_keywords` (lookup) | `query_database` on `search_console_query_pages` |
 | "trending queries" or "GSC data" | `get_organic_keywords` (lookup) | `query_gsc` on `search_console_queries` |
 | "my backlink history" | `fetch_backlinks` (lookup) | Could be either — ask if they mean tracked data or fresh API data |
@@ -77,7 +78,7 @@ Column names vary by table: run `describe_table` before writing SQL against a ta
 | "my automations" | N/A | `query_database` on `automations` table |
 | "show me the content brief/outline" (existing report) | N/A | `query_database` on `content_struct_layout_headings` + `content_struct_layout_metadata` |
 | "analyze competitors for keyword X" or "create/generate a content brief or outline" | `query_database` (SQL can only read outlines, not produce them) | `create_content_struct` (write; scrapes top SERP + competitor headings, async), then `generate_content_outline` (write; AI outline; needs provider + model — ask the user which) |
-| "cluster these keywords" or "group my keywords by topic/SERP similarity" | `query_database` (read-only), saved-keywords actions (wrong feature), or `fetch_serp_data` (buys SERPs without clustering them) | `create_serp_clustering_report` (write; async — poll `serp_clustering_reports.clustering_status`). To add keywords to an EXISTING report there is no add-keywords action: `run_serp_clustering` (write) with `keywords` + `distribute_keywords=true` (keeps existing clusters). To cut SERP cost on lists with word-order variants ("laravel horizon" / "horizon laravel"), pass `reuse_word_order_twins=true` on either action (opt-in, default false; typically saves 6-16% of SERP cost) — tell the user the trade-off first: some keywords can land in a slightly different cluster, and word order occasionally changes intent. A twin that already has fresh SERP data keeps its own |
+| "cluster these keywords" or "group my keywords by topic/SERP similarity" | `query_database` (read-only), saved-keywords actions (wrong feature), or `fetch_serp_data` (lookup; buys SERPs without clustering them) | `create_serp_clustering_report` (write; async — poll `serp_clustering_reports.clustering_status`). To add keywords to an EXISTING report there is no add-keywords action: `run_serp_clustering` (write) with `keywords` + `distribute_keywords=true` (keeps existing clusters). To cut SERP cost on lists with word-order variants ("laravel horizon" / "horizon laravel"), pass `reuse_word_order_twins=true` on either action (opt-in, default false; typically saves 6-16% of SERP cost) — tell the user the trade-off first: some keywords can land in a slightly different cluster, and word order occasionally changes intent. A twin that already has fresh SERP data keeps its own |
 | "which pages are AI bots fetching?" | `get_organic_keywords` (lookup) | Check `log_analysis_reports.bucket_schema_version` first. If ≥1, `query_database` on `log_file_analysis_page_activities WHERE ai_answer_hits + ai_assistant_hits > 0`. If =0, parse `bot_hits` JSON + JOIN `bot_categories` |
 | "what questions are AI engines asking about my site?" | N/A | `query_database` on `log_file_analysis_ai_requests` grouping by `extracted_query`. Low counts are NORMAL if traffic is mostly ChatGPT-User / Claude-User — those bots strip prompt data |
 | "is GPTBot / ClaudeBot / Google-Extended violating my robots.txt?" | `query_database` | `get_robots_compliance` (lookup) — SQL cannot evaluate robots.txt rules, the matcher is Go-side |
@@ -85,12 +86,14 @@ Column names vary by table: run `describe_table` before writing SQL against a ta
 
 ## Rule 3: When to Use Lookup Actions
 
-Use lookup actions (external data, may spend credits) ONLY when:
+Use the research lookups (keyword, traffic, backlink, SERP and competitor data; they spend the user's DataForSEO credits) ONLY when:
 - User asks about a **domain they don't track** (competitor research)
 - User explicitly asks for **fresh/live data** from DataForSEO
 - User wants **keyword suggestions** or **keyword metrics** for new keywords
 - User wants **backlink data** for any domain
 - User wants to **compare multiple domains** (bulk analysis)
+
+Task lookups are fine whenever the task needs them: `find_google_business` / `find_google_business_from_maps_url` (the place ID a GMB report or review fetch needs), `get_robots_compliance`, `check_google_indexing_status` / `check_index_now_status`, `get_demographics` and `fetch_autocomplete_keywords`.
 
 Never use a lookup action as a substitute for data the local database already has.
 
@@ -102,11 +105,11 @@ Never use a lookup action as a substitute for data the local database already ha
 
 ## Rule 5: Visualizing GMB Rank Tracker Grids
 
-When the user asks to "draw", "render", "show on a map", or "visualize" GMB rank tracker grids or rankings, produce an HTML artifact using **Leaflet 1.9.4 from the unpkg CDN** that matches the in-app heatmap style. Do NOT use Google Maps (needs an API key, won't render in artifacts) or default Leaflet pins (wrong style — the app uses small colored circles).
+When the user asks to "draw", "render", "show on a map", or "visualize" GMB rank tracker grids or rankings, produce an HTML artifact using **Leaflet 1.9.4 from cdnjs** (artifacts block most other script hosts) that matches the in-app heatmap style. Do NOT use Google Maps (needs an API key, won't render in artifacts) or default Leaflet pins (wrong style — the app uses small colored circles).
 
 **Data query** — use `query_database` to fetch grid points:
 - Grid layout only (no rankings): `SELECT lat, lng FROM google_business_rank_tracker_markers WHERE google_business_rank_tracker_report_id = ? AND enabled = 1`
-- Grid with rankings: join `google_business_rank_tracker_markers` with `google_business_rank_tracker_snapshot_items` on `(lat, lng)`, filtered by `place_id = report.place_id` and the chosen `snapshot_id`. For "best rank across all keywords" per grid point use `MIN(rank)` grouped by `(lat, lng)`. See the `google_business_rank_tracker_snapshot_items` schema annotation for the canonical avg_rank / SoLV math — do not invent your own.
+- Grid with rankings: join `google_business_rank_tracker_markers` with `google_business_rank_tracker_snapshot_items` on `(lat, lng)`, filtered by `place_id = report.place_id` and the chosen `google_business_rank_tracker_snapshot_id`. For "best rank across all keywords" per grid point use `MIN(rank)` grouped by `(lat, lng)`. See the `google_business_rank_tracker_snapshot_items` schema annotation for the canonical avg_rank / SoLV math — do not invent your own.
 
 **Pick the right marker size — this is the most common mistake:**
 
@@ -117,7 +120,7 @@ When the user asks to "draw", "render", "show on a map", or "visualize" GMB rank
 
 **Rendering recipe — full-page (default):**
 
-1. Load Leaflet from CDN: `https://unpkg.com/leaflet@1.9.4/dist/leaflet.css` + `https://unpkg.com/leaflet@1.9.4/dist/leaflet.js`.
+1. Load Leaflet from CDN: `https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css` + `https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js`.
 2. Init the map **interactive** with an OpenStreetMap tile layer so the user can see streets/neighborhoods:
    ```js
    const map = L.map(el)

@@ -25,7 +25,9 @@ With the skill installed, the AI knows:
 
 To get skill updates automatically, open `/plugin` → **Marketplaces** → **seo-utils** → **Enable auto-update** (Claude Code leaves it off for marketplaces you add). Or update by hand with `claude plugin update seo-utils@seo-utils`.
 
-**Claude Desktop or claude.ai:** open **Customize → Plugins**, add the marketplace `seoutilsapp/seo-utils-skills`, then install **SEO Utils**. A plugin you install there is also available in Claude Code.
+**Claude Desktop or claude.ai:** open **Customize → Plugins**, add the marketplace `seoutilsapp/seo-utils-skills`, then install **SEO Utils**. A plugin you install there is also available in Claude Code. To get skill updates, turn on **Sync automatically** for the marketplace, or select **Check for updates**.
+
+**Installed the skill before, with the `curl` command or an upload?** Remove that copy once the plugin is installed, so Claude doesn't load two versions: `rm -rf ~/.claude/skills/seo-utils-mcp-guide` for Claude Code, and delete it under **Customize → Skills** in Claude.
 
 The plugin contains the skill only. Connect the MCP server itself from the SEO Utils app (**Settings → MCP Server**).
 
@@ -33,13 +35,11 @@ The plugin contains the skill only. Connect the MCP server itself from the SEO U
 
 Use this for assistants without plugins, or if you prefer to manage the file yourself. It doesn't update automatically.
 
-**Claude Desktop / Cowork / ChatGPT:**
+**Claude Desktop / Cowork / ChatGPT:** these take a ZIP holding a `seo-utils-mcp-guide` folder with `SKILL.md` inside (the repository's own ZIP doesn't have that shape).
 
-1. [Download the latest ZIP](https://github.com/seoutilsapp/seo-utils-skills/archive/refs/heads/main.zip)
-2. Go to **Customize → Skills**
-3. Click **"+"** → **"Upload a skill"**
-4. Upload the downloaded ZIP file
-5. Toggle the skill on
+1. Get the ZIP: in SEO Utils, open **Settings → MCP Server**, choose your app and select **Save skill ZIP**. Or build it: create a folder named `seo-utils-mcp-guide`, save [SKILL.md](https://raw.githubusercontent.com/seoutilsapp/seo-utils-skills/main/skills/seo-utils-mcp-guide/SKILL.md) in it, and zip the folder.
+2. Claude: go to **Customize → Skills → + → Create skill → Upload a skill**. ChatGPT: go to **Plugins → Skills → Create → Upload from your computer** (Business, Enterprise or Edu plans).
+3. Upload the ZIP and turn the skill on.
 
 **Claude Code:**
 
