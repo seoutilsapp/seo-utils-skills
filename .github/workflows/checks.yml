@@ -1,7 +1,8 @@
 name: Checks
 
 # Skill.md at the repository root serves the download links and older install
-# instructions; the plugin loads skills/seo-utils-mcp-guide/SKILL.md. Both must
+# instructions; the plugin loads plugins/seo-utils/skills/seo-utils-mcp-guide/SKILL.md.
+# Both must
 # say the same thing, and the plugin and marketplace manifests must validate.
 on:
   push:
@@ -15,9 +16,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Skill.md matches the plugin's SKILL.md
         run: |
-          if ! cmp -s Skill.md skills/seo-utils-mcp-guide/SKILL.md; then
-            echo "::error file=Skill.md::Skill.md differs from skills/seo-utils-mcp-guide/SKILL.md. Edit the plugin's SKILL.md, then copy it: cp skills/seo-utils-mcp-guide/SKILL.md Skill.md"
-            diff -u skills/seo-utils-mcp-guide/SKILL.md Skill.md || true
+          if ! cmp -s Skill.md plugins/seo-utils/skills/seo-utils-mcp-guide/SKILL.md; then
+            echo "::error file=Skill.md::Skill.md differs from plugins/seo-utils/skills/seo-utils-mcp-guide/SKILL.md. Edit the plugin's SKILL.md, then copy it: cp plugins/seo-utils/skills/seo-utils-mcp-guide/SKILL.md Skill.md"
+            diff -u plugins/seo-utils/skills/seo-utils-mcp-guide/SKILL.md Skill.md || true
             exit 1
           fi
       - name: Plugin and marketplace manifests are valid
