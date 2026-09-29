@@ -1,0 +1,20 @@
+{
+  "name": "seo-utils",
+  "displayName": "SEO Utils",
+  "description": "Teaches Claude to use the SEO Utils MCP server: local SQL for your own rank tracker, Search Console and Google Business data, paid lookups only for external data, and the right action for every SEO task.",
+  "author": {
+    "name": "SEO Utils",
+    "url": "https://seoutils.app"
+  },
+  "homepage": "https://help.seoutils.app/guide/mcp-server",
+  "repository": "https://github.com/seoutilsapp/seo-utils-skills",
+  "keywords": [
+    "seo",
+    "rank-tracker",
+    "search-console",
+    "google-business",
+    "keyword-research",
+    "backlinks",
+    "mcp"
+  ]
+}
