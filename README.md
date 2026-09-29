@@ -37,7 +37,7 @@ Use this for assistants without plugins, or if you prefer to manage the file you
 
 **Claude Desktop / Cowork / ChatGPT:** these take a ZIP holding a `seo-utils-mcp-guide` folder with `SKILL.md` inside (the repository's own ZIP doesn't have that shape).
 
-1. Get the ZIP: in SEO Utils, open **Settings → MCP Server**, choose your app and select **Save skill ZIP**. Or build it: create a folder named `seo-utils-mcp-guide`, save [SKILL.md](https://raw.githubusercontent.com/seoutilsapp/seo-utils-skills/main/skills/seo-utils-mcp-guide/SKILL.md) in it, and zip the folder.
+1. Get the ZIP: in SEO Utils, open **Settings → MCP Server**, choose your app and select **Save skill ZIP**. Or build it: create a folder named `seo-utils-mcp-guide`, save [SKILL.md](https://raw.githubusercontent.com/seoutilsapp/seo-utils-skills/main/plugins/seo-utils/skills/seo-utils-mcp-guide/SKILL.md) in it, and zip the folder.
 2. Claude: go to **Customize → Skills → + → Create skill → Upload a skill**. ChatGPT: go to **Plugins → Skills → Create → Upload from your computer** (Business, Enterprise or Edu plans).
 3. Upload the ZIP and turn the skill on.
 
@@ -74,8 +74,9 @@ curl -sL https://raw.githubusercontent.com/seoutilsapp/seo-utils-skills/main/Ski
 
 ## Updating the skill (maintainers)
 
-- Edit `skills/seo-utils-mcp-guide/SKILL.md`, then copy it to `Skill.md`. The root `Skill.md` serves the download links above and older install instructions; a check fails when the two differ.
-- Don't add a `version` to `.claude-plugin/plugin.json`. Without one, every commit on `main` is a new version, so installed plugins update. A pinned version keeps everyone on the old copy until someone changes it.
+- Edit `plugins/seo-utils/skills/seo-utils-mcp-guide/SKILL.md`, then copy it to `Skill.md`. The root `Skill.md` serves the download links above and older install instructions; a check fails when the two differ.
+- The plugin lives in `plugins/seo-utils/`, apart from the root `Skill.md`: Claude Desktop and claude.ai reject a plugin that holds two copies of one skill.
+- Don't add a `version` to `plugins/seo-utils/.claude-plugin/plugin.json`. Without one, every commit on `main` is a new version, so installed plugins update. A pinned version keeps everyone on the old copy until someone changes it.
 
 ## Links
 

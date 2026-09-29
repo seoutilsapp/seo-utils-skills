@@ -8,7 +8,7 @@
   "plugins": [
     {
       "name": "seo-utils",
-      "source": "./",
+      "source": "./plugins/seo-utils",
       "description": "Teaches Claude to use the SEO Utils MCP server: which tool, which table and which action for every SEO task.",
       "category": "productivity"
     }
