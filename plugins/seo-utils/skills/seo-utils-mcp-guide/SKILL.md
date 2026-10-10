@@ -9,7 +9,7 @@ When the user asks about SEO data, use this guide to pick the correct tool.
 
 ## How the SEO Utils tools work
 
-**Data tools** are listed as tools: `list_tables`, `describe_table`, `query_database` (read-only SQL on the user's local database), `query_gsc` (Search Console tables), `list_workspaces` and `set_workspace`. SQL sees every workspace: filter tables that have a `workspace_id` column by the active workspace, which `list_workspaces` shows. Actions run in the active workspace only, so if a report the user names is missing, check `list_workspaces`.
+**Data tools** are listed as tools: `list_tables`, `describe_table`, `query_database` (read-only SQL on the user's local database), `query_gsc` (Search Console tables), `list_workspaces` and `set_workspace`. SQL sees every workspace: filter tables that have a `workspace_id` column by the workspace the user means — the active one, which `list_workspaces` shows, unless they name another. Actions run in the active workspace, so if a report the user names is missing, check `list_workspaces`. When the user names a workspace for an action ("in the Client A workspace"), pass its ID as `workspace_id` on the run tool, beside `action` (not inside `arguments`): it applies to that call only and is not lost on a reconnect, unlike a `set_workspace` switch. SEO Utils 2.7.0 and older refuse `workspace_id`; use `set_workspace` there.
 
 **Everything else is an action**, and actions are NOT tools. You can't call `get_organic_keywords` directly. Run an action with the run tool of its class, passing `{"action": "<name>", "arguments": {...}}`:
 
