@@ -2,7 +2,7 @@
 name: seo-utils-mcp-guide
 description: Use whenever the user asks about their SEO data or asks to run an SEO task through the SEO Utils MCP server (tools such as query_database, query_gsc, search_actions, read_action, lookup_action, write_action). Covers rank trackers ("my rankings", "my keywords"), Google Search Console, Google Business / GMB grids and reviews, LLM rank tracking, AI Visibility (brand share of voice in AI answers against competitors), keyword research and metrics, backlinks, competitors, SERP clustering, content briefs, log analysis and AI bots, indexing, automations and email. Tells you which tool to use (local SQL vs paid lookup vs write), which tables to query, and which action to run with which run tool. Also use it to set up SEO Utils, or when a tool says something is not set up yet.
 metadata:
-  version: "2.12.1"
+  version: "2.13.0"
 ---
 
 # SEO Utils MCP Tool Selection Guide
@@ -13,12 +13,17 @@ When the user asks about SEO data, use this guide to pick the correct tool.
 
 When the user wants to set up SEO Utils, or a tool answers that something is not set up yet (no DataForSEO login, no Google key, …):
 
-1. Call `get_setup_guide` with `{"skill_version": "2.12.1"}` and follow it. It works without the MCP add-on. If it refuses `skill_version`, call it again with no arguments: SEO Utils is older than this skill, so suggest the user update SEO Utils.
+1. Call `get_setup_guide` with `{"skill_version": "2.13.0"}` and follow it. It works without the MCP add-on. If it refuses `skill_version`, call it again with no arguments: SEO Utils is older than this skill, so suggest the user update SEO Utils.
 2. Follow `references/setup.md` when this folder has it. In short: keys and passwords go in the app, never in the chat; check each step with `get_setup_status` before going on; set up what the user's tools need first; finish with a first win, such as a small rank tracker.
 
 ## Questions about SEO Utils itself
 
-For how-to and troubleshooting questions about the app, not the user's data (how to set something up, how a tool works, why something fails), answer from the help site, never from memory: `read_help_page` (lookup) with the page's link (the `guide` that `get_setup_plan` gives for each tool and setup step), or with no `page` for the list of every help page. Take the user through the page step by step in the chat; when something doesn't work, check each step with them to find what is wrong. Give the page's link at the end for more details, never as the whole answer. If the user added the help site's own MCP server (GitBook, `searchDocumentation`), it can search the full text too.
+For how-to and troubleshooting questions about the app, not the user's data (how to set something up, how a tool works, why something fails), never answer from memory.
+
+- **About a tool:** call `get_tool_guide` (read) with the tool's key first; with no `tool` it lists the keys. It holds the steps, button names and setup needs of the user's own SEO Utils, and the tool's help page. Then read that help page with `read_help_page` (lookup) for what the guide leaves out: each field, each option, troubleshooting. Where the two name a button differently, use the guide's name. If SEO Utils refuses `get_tool_guide` (it is older than this skill), use `read_help_page` alone.
+- **Anything else:** `read_help_page` (lookup) with the page's link (the `guide` that `get_setup_plan` gives for each tool and setup step), or with no `page` for the list of every help page.
+
+Take the user through the page step by step in the chat; when something doesn't work, check each step with them to find what is wrong. Give the page's link at the end for more details, never as the whole answer. If the user added the help site's own MCP server (GitBook, `searchDocumentation`), it can search the full text too.
 
 ## How the SEO Utils tools work
 
