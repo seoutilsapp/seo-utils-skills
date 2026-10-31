@@ -2,7 +2,7 @@
 name: seo-utils-mcp-guide
 description: Use whenever the user asks about their SEO data or asks to run an SEO task through the SEO Utils MCP server (tools such as query_database, query_gsc, search_actions, read_action, lookup_action, write_action). Covers rank trackers ("my rankings", "my keywords"), Google Search Console, Google Business / GMB grids and reviews, LLM rank tracking, AI Visibility (brand share of voice in AI answers against competitors), keyword research and metrics, backlinks, competitors, SERP clustering, content briefs, log analysis and AI bots, indexing, automations and email. Tells you which tool to use (local SQL vs paid lookup vs write), which tables to query, and which action to run with which run tool. Also use it to set up SEO Utils, or when a tool says something is not set up yet.
 metadata:
-  version: "2.13.0"
+  version: "2.14.0"
 ---
 
 # SEO Utils MCP Tool Selection Guide
@@ -13,7 +13,7 @@ When the user asks about SEO data, use this guide to pick the correct tool.
 
 When the user wants to set up SEO Utils, or a tool answers that something is not set up yet (no DataForSEO login, no Google key, …):
 
-1. Call `get_setup_guide` with `{"skill_version": "2.13.0"}` and follow it. It works without the MCP add-on. If it refuses `skill_version`, call it again with no arguments: SEO Utils is older than this skill, so suggest the user update SEO Utils.
+1. Call `get_setup_guide` with `{"skill_version": "2.14.0"}` and follow it. It works without the MCP add-on. If it refuses `skill_version`, call it again with no arguments: SEO Utils is older than this skill, so suggest the user update SEO Utils.
 2. Follow `references/setup.md` when this folder has it. In short: keys and passwords go in the app, never in the chat; check each step with `get_setup_status` before going on; set up what the user's tools need first; finish with a first win, such as a small rank tracker.
 
 ## Questions about SEO Utils itself
