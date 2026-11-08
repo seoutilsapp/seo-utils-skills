@@ -30,6 +30,9 @@ throughout.
 
 - `get_setup_guide` or another tool says SEO Utils isn't running: ask the user
   to open SEO Utils and turn on Settings → MCP Server, then try again.
+- A tool says SEO Utils couldn't be reached: tell the user the reason it gives
+  and the step it names (for example, connect the app again from SEO Utils).
+  SEO Utils → Settings → MCP Server shows the same problem for each AI app.
 - An action other than the setup ones answers with the purchase message: the
   user has setup-only access. Setup still works; the other tools need the MCP
   add-on.
