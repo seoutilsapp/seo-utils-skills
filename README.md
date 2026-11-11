@@ -76,7 +76,7 @@ curl -sL https://raw.githubusercontent.com/seoutilsapp/seo-utils-skills/main/Ski
 
 - Edit `plugins/seo-utils/skills/seo-utils-mcp-guide/SKILL.md`, then copy it to `Skill.md`. The root `Skill.md` serves the download links above and older install instructions; a check fails when the two differ.
 - The plugin lives in `plugins/seo-utils/`, apart from the root `Skill.md`: Claude Desktop and claude.ai reject a plugin that holds two copies of one skill.
-- Don't add a `version` to `plugins/seo-utils/.claude-plugin/plugin.json`. Without one, every commit on `main` is a new version, so installed plugins update. A pinned version keeps everyone on the old copy until someone changes it.
+- Keep `version` in `plugins/seo-utils/.claude-plugin/plugin.json` and raise it with every change to the skill. claude.ai and Claude Desktop update an installed plugin only when that version changes, and Claude Code keeps installs on it until it changes, so a change published without a new version reaches nobody. Each SEO Utils release sets it to the release version when it publishes the skill here.
 
 ## Links
 
