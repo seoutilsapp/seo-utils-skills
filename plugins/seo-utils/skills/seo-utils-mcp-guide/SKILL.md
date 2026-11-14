@@ -2,7 +2,7 @@
 name: seo-utils-mcp-guide
 description: Use whenever the user asks about their SEO data or asks to run an SEO task through the SEO Utils MCP server (tools such as query_database, query_gsc, search_actions, read_action, lookup_action, write_action). Covers rank trackers ("my rankings", "my keywords"), Google Search Console, Google Business / GMB grids and reviews, LLM rank tracking, AI Visibility (brand share of voice in AI answers against competitors), keyword research and metrics, backlinks, competitors, SERP clustering, content briefs, log analysis and AI bots, indexing, automations and email. Tells you which tool to use (local SQL vs paid lookup vs write), which tables to query, and which action to run with which run tool. Also use it to set up SEO Utils, or when a tool says something is not set up yet.
 metadata:
-  version: "2.15.0"
+  version: "2.16.0"
 ---
 
 # SEO Utils MCP Tool Selection Guide
@@ -13,7 +13,7 @@ When the user asks about SEO data, use this guide to pick the correct tool.
 
 When the user wants to set up SEO Utils, or a tool answers that something is not set up yet (no DataForSEO login, no Google key, …):
 
-1. Call `get_setup_guide` with `{"skill_version": "2.15.0"}` and follow it. It works without the MCP add-on. If it refuses `skill_version`, call it again with no arguments: SEO Utils is older than this skill, so suggest the user update SEO Utils.
+1. Call `get_setup_guide` with `{"skill_version": "2.16.0"}` and follow it. It works without the MCP add-on. If it refuses `skill_version`, call it again with no arguments: SEO Utils is older than this skill, so suggest the user update SEO Utils.
 2. Follow `references/setup.md` when this folder has it. In short: keys and passwords go in the app, never in the chat; check each step with `get_setup_status` before going on; set up what the user's tools need first; finish with a first win, such as a small rank tracker.
 
 ## Questions about SEO Utils itself
@@ -101,7 +101,7 @@ Column names vary by table: run `describe_table` before writing SQL against a ta
 | "cluster these keywords" or "group my keywords by topic/SERP similarity" | `query_database` (read-only), saved-keywords actions (wrong feature), or `fetch_serp_data` (lookup; buys SERPs without clustering them) | `create_serp_clustering_report` (write; async — poll `serp_clustering_reports.clustering_status`). To add keywords to an EXISTING report there is no add-keywords action: `run_serp_clustering` (write) with `keywords` + `distribute_keywords=true` (keeps existing clusters). To cut SERP cost on lists with word-order variants ("laravel horizon" / "horizon laravel"), pass `reuse_word_order_twins=true` on either action (opt-in, default false; typically saves 6-16% of SERP cost) — tell the user the trade-off first: some keywords can land in a slightly different cluster, and word order occasionally changes intent. A twin that already has fresh SERP data keeps its own |
 | "which pages are AI bots fetching?" | `get_organic_keywords` (lookup) | Check `log_analysis_reports.bucket_schema_version` first. If ≥1, `query_database` on `log_file_analysis_page_activities WHERE ai_answer_hits + ai_assistant_hits > 0`. If =0, parse `bot_hits` JSON + JOIN `bot_categories` |
 | "what questions are AI engines asking about my site?" | N/A | `query_database` on `log_file_analysis_ai_requests` grouping by `extracted_query`. Low counts are NORMAL if traffic is mostly ChatGPT-User / Claude-User — those bots strip prompt data |
-| "is GPTBot / ClaudeBot / Google-Extended violating my robots.txt?" | `query_database` | `get_robots_compliance` (lookup) — SQL cannot evaluate robots.txt rules, the matcher is Go-side |
+| "is GPTBot / ClaudeBot / CCBot violating my robots.txt?" | `query_database` | `get_robots_compliance` (lookup) — SQL cannot evaluate robots.txt rules, the matcher is Go-side |
 | "my share of voice in AI answers", "where do competitors beat us in ChatGPT / AI Overviews?", "which prompts name my competitors and not me?" | `query_database` on `ai_visibility_explorations` (the parts are app-internal JSON) or on `llm_rank_tracker_*` (the user's own tracked prompts, another tool) | `list_ai_visibility_explorations` (read), then `get_ai_visibility_overview`, `get_ai_visibility_gaps` or `search_ai_mentions` (read). What is not loaded comes back with `needsSpend` and the paid call (`run_ai_visibility_load` (write), `load_ai_visibility_list` (lookup)): tell the user the price and send it unchanged only after they agree |
 | "how is AI traffic trending?" | N/A | `query_database` on `log_file_analysis_page_activities` summing `ai_answer_hits + ai_assistant_hits` by date (upgraded reports only) |
 
