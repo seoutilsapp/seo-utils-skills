@@ -2,7 +2,7 @@
 name: seo-utils-mcp-guide
 description: Use whenever the user asks about their SEO data or asks to run an SEO task through the SEO Utils MCP server (tools such as query_database, query_gsc, search_actions, read_action, lookup_action, write_action). Covers rank trackers ("my rankings", "my keywords"), Google Search Console, Google Business / GMB grids and reviews, LLM rank tracking, AI Visibility (brand share of voice in AI answers against competitors), keyword research and metrics, backlinks, competitors, SERP clustering, content briefs, log analysis and AI bots, indexing, automations and email. Tells you which tool to use (local SQL vs paid lookup vs write), which tables to query, and which action to run with which run tool. Also use it to set up SEO Utils, or when a tool says something is not set up yet.
 metadata:
-  version: "2.16.0"
+  version: "2.17.0"
 ---
 
 # SEO Utils MCP Tool Selection Guide
@@ -13,7 +13,7 @@ When the user asks about SEO data, use this guide to pick the correct tool.
 
 When the user wants to set up SEO Utils, or a tool answers that something is not set up yet (no DataForSEO login, no Google key, …):
 
-1. Call `get_setup_guide` with `{"skill_version": "2.16.0"}` and follow it. It works without the MCP add-on. If it refuses `skill_version`, call it again with no arguments: SEO Utils is older than this skill, so suggest the user update SEO Utils.
+1. Call `get_setup_guide` with `{"skill_version": "2.17.0"}` and follow it. It works without the MCP add-on. If it refuses `skill_version`, call it again with no arguments: SEO Utils is older than this skill, so suggest the user update SEO Utils.
 2. Follow `references/setup.md` when this folder has it. In short: keys and passwords go in the app, never in the chat; check each step with `get_setup_status` before going on; set up what the user's tools need first; finish with a first win, such as a small rank tracker.
 
 ## Questions about SEO Utils itself
@@ -63,8 +63,14 @@ The user has TWO types of SEO data:
 - Saved Keywords → `saved_keywords_*` tables
 - Automations → `automations`, `automation_*` tables
 - Indexing status → `site_urls`, `index_now_urls` tables
-- Log Analysis → `log_analysis_reports`, `log_file_analysis_*` tables, per-report `log_sources` (auto-import config), per-hit `log_file_analysis_ai_requests` (AI answer/assistant bots, 90d retention), and the GLOBAL `bot_categories` lookup (bot → bucket: ai_answer / ai_assistant / ai_training / search / social / seo_tool / monitoring / other). For upgraded reports (`log_analysis_reports.bucket_schema_version >= 1`), `log_file_analysis_page_activities` has denormalized `ai_answer_hits` / `ai_assistant_hits` / `ai_training_hits` / `search_hits` / `other_bot_hits` columns; for pre-upgrade reports those are 0 and you must parse `bot_hits` JSON + JOIN `bot_categories`.
-- SEO Tests → `tests`, `test_*` tables
+- Log Analysis → `log_analysis_reports`, `log_file_analysis_*` tables, per-report `log_sources` (auto-import config), per-hit `log_file_analysis_ai_requests` (AI answer/assistant bots, 90d retention), and the GLOBAL `bot_categories` lookup (bot → bucket: ai_answer / ai_assistant / ai_training / search / social / seo_tool / monitoring / other). For upgraded reports (`log_analysis_reports.bucket_schema_version >= 1`), `log_file_analysis_page_activities` has denormalized `ai_answer_hits` / `ai_assistant_hits` / `ai_training_hits` / `search_hits` / `other_bot_hits` columns; for pre-upgrade reports those are 0 and you must parse `bot_hits` JSON + JOIN `bot_categories`. `search_hits` is EVERY search-engine crawler together, never Googlebot alone: for Googlebot use `googlebot_hits` (a generated column; `bingbot_hits` and the other `*_hits` likewise) or `log_file_analysis_bot_activities WHERE bot_name = 'Googlebot'`.
+- SEO Tests → `tests`, `test_*` tables. For a test's results (the verdict, significance and uplifts the test page shows), run `get_seo_test_results` (read) instead of recomputing them from Search Console rows
+
+**Dates in SQL.** Every date is UTC text `YYYY-MM-DD HH:MM:SS`, and `describe_table` says which day each date column holds. Search Console days (stored as Pacific midnight, `2026-11-09 08:00:00` = Nov 9), GA4 days (`2026-11-09 00:00:00`) and log days keep the day in the text's date part: filter with `col >= 'first day' AND col < 'the day after the last'`, never `BETWEEN 'first' AND 'last'` (it drops the last day). This computer's local days (`organic_rank_tracker_snapshots.ran_on`, …) do not: compare `date(col, 'localtime')`.
+
+**Search Console history.** `search_console_dailies`, `search_console_queries`, `search_console_pages`, `search_console_countries`, `search_console_devices` and `search_console_data_items` (query × page × country × device) keep every day since the first sync (16 months back). `search_console_query_pages` is only a summary of the last 30-day pull, not history: for a query's or a page's days before and after a change, use the daily tables.
+
+**GA4 per page.** `get_ga4_page_traffic` (read) answers each page's organic key events split by event name (`key_events_by_name`: sign-ups, purchases, …).
 
 Column names vary by table: run `describe_table` before writing SQL against a table you haven't used in this conversation.
 
@@ -85,6 +91,7 @@ Column names vary by table: run `describe_table` before writing SQL against a ta
 |-----------|-----------|-----------------|
 | "rank tracker report" or "my rankings" | `get_organic_keywords` (lookup) | `query_database` on `organic_rank_tracker_*` tables |
 | "what changed on this ranked page?", "why did this page become lost/new?", or "compare the captured HTML" | `query_database` alone (it can only see capture metadata/file paths, not the HTML body) or `fetch_serp_data` (lookup; SERP HTML is not ranked-page HTML) | Use `query_database` to select two completed `organic_rank_tracker_page_html_captures`, then `compare_ranked_page_html` (read). Start with `content_mode=main_content`; use `full_html` for title/canonical/robots/structured-data/template checks. Prefer equal `page_key` for before/after; different page keys are only an explicit lost-page vs replacement-page comparison. Treat changes as correlated evidence, not proof of ranking causation |
+| "should I run my rank tracker?", "check fresh rankings for these keywords" | Offering any report, or saying a run spends DataForSEO credits | `list_organic_rank_tracker_reports` (read) with the keywords in question first: it says which reports track them and what a run costs (only a `serp-api-dfs` report spends DataForSEO credits; `own-ip` and `proxies` reports do not). Then offer `run_rank_tracker` (write) on a report that tracks them |
 | "add keywords to my rank tracker" or "start tracking X for example.com" | `add_keywords_to_list` (write; saved keyword lists, a separate feature) or `query_database` (SQL is read-only, can't INSERT) | `add_organic_rank_tracker_keywords` (write) — then ASK the user whether to run `run_rank_tracker` (write) as a follow-up (don't auto-rerun). Saved keyword lists are a separate feature |
 | "remove keywords from my rank tracker" or "delete X from my rank tracker" or "clean up keywords in <report>" | `remove_keywords_from_list` (write; saved keyword lists, wrong feature) or `query_database` (SQL is read-only, can't DELETE) | `remove_organic_rank_tracker_keywords` (write) — match is by keyword text. DESTRUCTIVE: also deletes historical positions, PAA appearances, and insights for those keywords. Confirm with the user before running on a large set |
 | "delete my GMB report(s)", "remove these local rank trackers / grids", or "clean up my GMB test reports" | `delete_gmb_report_group` (write; deletes only the GROUP — its reports stay) or `query_database` (SQL is read-only, can't DELETE) | `delete_gmb_rank_tracker_reports` (write) with `report_ids` (whole-number IDs from `google_business_rank_tracker_reports`, max 100 per call; one report = one-item list). DESTRUCTIVE and permanent: also deletes the reports' keywords, grid markers, snapshots and ranking history — confirm the report names and IDs with the user first. Deleting reports does not delete a group that contained them |
