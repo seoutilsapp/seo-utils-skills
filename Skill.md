@@ -2,7 +2,7 @@
 name: seo-utils-mcp-guide
 description: Use whenever the user asks about their SEO data or asks to run an SEO task through the SEO Utils MCP server (tools such as query_database, query_gsc, search_actions, read_action, lookup_action, write_action). Covers rank trackers ("my rankings", "my keywords"), Google Search Console, Google Business / GMB grids and reviews, LLM rank tracking, AI Visibility (brand share of voice in AI answers against competitors), keyword research and metrics, backlinks, competitors, SERP clustering, content briefs, log analysis and AI bots, indexing, automations and email. Tells you which tool to use (local SQL vs paid lookup vs write), which tables to query, and which action to run with which run tool. Also use it to set up SEO Utils, or when a tool says something is not set up yet.
 metadata:
-  version: "2.17.0"
+  version: "2.18.0"
 ---
 
 # SEO Utils MCP Tool Selection Guide
@@ -13,7 +13,7 @@ When the user asks about SEO data, use this guide to pick the correct tool.
 
 When the user wants to set up SEO Utils, or a tool answers that something is not set up yet (no DataForSEO login, no Google key, …):
 
-1. Call `get_setup_guide` with `{"skill_version": "2.17.0"}` and follow it. It works without the MCP add-on. If it refuses `skill_version`, call it again with no arguments: SEO Utils is older than this skill, so suggest the user update SEO Utils.
+1. Call `get_setup_guide` with `{"skill_version": "2.18.0"}` and follow it. It works without the MCP add-on. If it refuses `skill_version`, call it again with no arguments: SEO Utils is older than this skill, so suggest the user update SEO Utils.
 2. Follow `references/setup.md` when this folder has it. In short: keys and passwords go in the app, never in the chat; check each step with `get_setup_status` before going on; set up what the user's tools need first; finish with a first win, such as a small rank tracker.
 
 ## Questions about SEO Utils itself
@@ -52,7 +52,7 @@ The user has TWO types of SEO data:
 **Local database** (synced/tracked over time) — use `query_database` or `query_gsc`:
 - Organic Rank Tracker reports → `organic_rank_tracker_*` tables. Ranked-page capture metadata is in `organic_rank_tracker_page_html_captures`, but the HTML body is stored on disk; discover two completed capture IDs with `query_database`, then use `compare_ranked_page_html` (read) to read and diff them
 - Google Business Rank Tracker → `google_business_rank_tracker_*` tables
-- Review Fetcher (Google Business reviews) → `google_business_review_fetches`, `google_business_review_snapshots`, and the GLOBAL deduplicated `google_business_reviews` table — review rows are SHARED across businesses, so NEVER filter it alone; always JOIN through `google_business_review_snapshot_reviews` against the business's latest completed snapshot and exclude `visibility_status = 'missing'`
+- Google Business Reviews → `google_business_review_fetches`, `google_business_review_snapshots`, and the GLOBAL deduplicated `google_business_reviews` table — review rows are SHARED across businesses, so NEVER filter it alone. For a business's current reviews run the query in `describe_table google_business_reviews` with `query_database` (each review's state as of the latest completed run; a single snapshot holds only what that run fetched); over Remote Access, the `list_reviews` read gives the same list
 - Google Search Console data → `search_console_*` tables (use `query_gsc`)
 - LLM Rank Tracker → `llm_rank_tracker_*` tables
 - AI Visibility explorations → `ai_visibility_explorations` (one row per exploration). Its numbers are app-internal JSON parts: read them with `get_ai_visibility_overview`, `get_ai_visibility_gaps`, `search_ai_mentions` and `get_ai_visibility_citations` (all read; free, from the cache), never with SQL. A different tool from the LLM Rank Tracker: it reads DataForSEO's database of collected AI answers instead of running the user's own prompts
@@ -137,7 +137,7 @@ When the user asks to "draw", "render", "show on a map", or "visualize" GMB rank
 
 **Data query** — use `query_database` to fetch grid points:
 - Grid layout only (no rankings): `SELECT lat, lng FROM google_business_rank_tracker_markers WHERE google_business_rank_tracker_report_id = ? AND enabled = 1`
-- Grid with rankings: join `google_business_rank_tracker_markers` with `google_business_rank_tracker_snapshot_items` on `(lat, lng)`, filtered by `place_id = report.place_id` and the chosen `google_business_rank_tracker_snapshot_id`. For "best rank across all keywords" per grid point use `MIN(rank)` grouped by `(lat, lng)`. See the `google_business_rank_tracker_snapshot_items` schema annotation for the canonical avg_rank / SoLV math — do not invent your own.
+- Grid with rankings: join `google_business_rank_tracker_markers` with `google_business_rank_tracker_snapshot_items` on `(lat, lng)`, filtered by `place_id = report.place_id` and the chosen `google_business_rank_tracker_snapshot_id`. A business can hold more than one row at one grid point, so take ONE rank per marker: `MIN(rank)` (of `rank > 0`) grouped by `(lat, lng)` within the one snapshot, for one keyword as for "best rank across all keywords". See the `google_business_rank_tracker_snapshot_items` schema annotation for the canonical avg_rank / SoLV math — do not invent your own.
 
 **Pick the right marker size — this is the most common mistake:**
 
